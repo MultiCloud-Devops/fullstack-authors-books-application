@@ -1,30 +1,45 @@
-# React + TypeScript + Vite
+## Setting up the Presentation Tier
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# conncet to your  front end instance
+#### Install GIT
+```
+sudo yum update -y
 
-Currently, two official plugins are available:
+sudo yum install git -y
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+git — version
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+#### Install node.js
+1. To install node version manager (nvm)
+```
+curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+sudo yum install -y nodejs
+```
+### Install httpd (apache)
+```
+sudo yum install httpd -y
+sudo systemctl start httpd
+sudo systemctl enable httpd
+```
+#### Clone repository
+```
+git clone https://github.com/CloudTechDevOps/fullstack-autors-books-application.git
+```
+###Switch to frontend
+```
+cd fullstack-authors-books-application
+cd frontend
+```
+### In frontend path .env file is there if not existis please create .env file 
+```
+VITE_API_URL=http://3.85.56.86/api   // put your backend public ip or dns name 
+```
+#### Run the following commnads in frontend 
+```
+npm install
+npm run build
+sudo cp -r dist/* /var/www/html/
+```
+
+### Now access the frontend with public ip 
