@@ -129,6 +129,9 @@ mysql -h database-1.cj6qigogwls0.us-east-1.rds.amazonaws.com -u admin -pveeradon
 ```
 npm install
 pm2 start server.js --name "veera"
+pm2 startup
+sudo systemctl enable pm2-root
+sudo pm2 save
 ```
 ### hit public ip you will get this responce 
 #### Dashboard
