@@ -61,7 +61,7 @@ sudo cp -r dist/* /var/www/html/
 # Setting up the Data Tier
 
 ```
-create a rds database
+create a rds database in sasme vpc
 ```
 ### Setting up the Application Tier
 
