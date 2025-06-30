@@ -14,9 +14,7 @@ This project is a full-stack web application built using React js for the fronte
 
 ## Setting up the Presentation Tier
 
-## conncet to your  front end instance
-1. To change the ssh key permission:
-
+# conncet to your  front end instance
 #### Install GIT
 ```
 sudo yum update -y
@@ -44,13 +42,14 @@ git clone https://github.com/CloudTechDevOps/fullstack-autors-books-application.
 ```
 ###Switch to frontend
 ```
+cd fullstack-authors-books-application
 cd frontend
 ```
-### In front end path .env file is there if not existis please create .env file 
+### In frontend path .env file is there if not existis please create .env file 
 ```
-VITE_API_URL=http://3.85.56.86:3200/api   // put your backend public ip or dns name 
+VITE_API_URL=http://3.85.56.86/api   // put your backend public ip or dns name 
 ```
-#### Run the following commnads 
+#### Run the following commnads in frontend 
 ```
 npm install
 npm run build
@@ -59,14 +58,14 @@ sudo cp -r dist/* /var/www/html/
 
 ### Now access the frontend with public ip 
 
-## Setting up the Data Tier
+# Setting up the Data Tier
 
 ```
 create a rds database
 ```
 ### Setting up the Application Tier
 
-## conncet to your  back end instance
+## conncet to your  backend instance
 
 #### Install GIT
 ```
@@ -102,9 +101,10 @@ git clone https://github.com/CloudTechDevOps/fullstack-autors-books-application.
 ```
 ### Switch to backend
 ```
+cd fullstack-authors-books-application
 cd backend
 ```
-### change the database details 
+### change the database details  in db.js
 ### *** vi configs/db.js***
 ```
 const mysql = require('mysql2');
