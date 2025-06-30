@@ -1,3 +1,8 @@
+-- Create Database and User
+CREATE DATABASE IF NOT EXISTS react_node_app;
+
+-- Select the database to use before creating tables
+
 USE react_node_app;
 
 -- Create Tables
