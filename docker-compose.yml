@@ -20,7 +20,7 @@ services:
     networks:
       - appnet
     environment:
-      - DB_HOST="database-1.cocixhx6hohs.us-east-1.rds.amazonaws.com"
+      - DB_HOST=database-1.cocixhx6hohs.us-east-1.rds.amazonaws.com
       - DB_USER=admin
       - DB_PASSWORD=Adminpassword123
       - DB_PORT=3306
