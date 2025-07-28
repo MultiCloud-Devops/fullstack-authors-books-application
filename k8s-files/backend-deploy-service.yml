@@ -56,7 +56,7 @@ metadata:
 spec:
   ports:
   - port: 80
-    targetPort: 80
+    targetPort: 3306
     protocol: TCP
       #nodePort: 31005  # Optional: Specify a #nodePort if you want a fixed port
   selector:
