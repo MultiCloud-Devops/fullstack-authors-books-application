@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: db-config
 data:
-  DB_Port: "3306"
-  DB_Name: "react_node_app"
+  DB_PORT: "3306"
+  DB_NAME: "react_node_app"
