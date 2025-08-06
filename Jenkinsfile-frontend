@@ -1,56 +1,87 @@
 pipeline {
   agent {
     kubernetes {
-      label 'jenkins-kaniko-agent'
-      defaultContainer 'kaniko'
+      label 'jenkins-buildah-agent'
+      defaultContainer 'buildah'
       yaml """
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    app: kaniko
+    app: buildah
 spec:
   serviceAccountName: jenkins-sa
   containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:latest
-    args:
-      - --dockerfile=Dockerfile
-      - --context=.
-      - --destination=100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend:v\$(BUILD_NUMBER)
-      - --verbosity=info
-    volumeMounts:
-      - name: kaniko-secret
-        mountPath: /kaniko/.docker
-  restartPolicy: Never
-  volumes:
-  - name: kaniko-secret
-    projected:
-      sources:
-      - serviceAccountToken:
-          path: token
+  - name: buildah
+    image: quay.io/buildah/stable
+    command:
+    - cat
+    tty: true
+    securityContext:
+      privileged: true
 """
     }
   }
 
   environment {
-    AWS_REGION = 'us-east-1'
-    ECR_REPO   = '100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend'
-    IMAGE_TAG  = "v${env.BUILD_NUMBER}"
+    AWS_REGION     = 'us-east-1'
+    ECR_REPO       = '100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend'
+    IMAGE_TAG      = "v${env.BUILD_NUMBER}"
+    GIT_REPO       = 'https://github.com/MultiCloud-Devops/fullstack-authors-books-application.git'
+    GIT_BRANCH     = 'main'
+    GIT_USER       = 'MultiCloud-Devops'
+    GIT_EMAIL      = 'krishnaurs2022@gmail.com'
   }
 
   stages {
-    stage('Checkout') {
+    stage('Checkout Code') {
       steps {
-        git url: 'https://github.com/MultiCloud-Devops/fullstack-authors-books-application.git', branch: 'main'
+        git url: "${env.GIT_REPO}", branch: "${env.GIT_BRANCH}"
       }
     }
 
-    stage('Build & Push') {
+    stage('Login to ECR') {
       steps {
-        container('kaniko') {
-          echo "Kaniko build running automatically from args in pod YAML."
-          // No shell step needed here — Kaniko runs from args
+        container('buildah') {
+          sh '''
+            aws ecr get-login-password --region ${AWS_REGION} \
+              | buildah login --username AWS --password-stdin ${ECR_REPO}
+          '''
+        }
+      }
+    }
+
+    stage('Build and Push Image to ECR') {
+      steps {
+        container('buildah') {
+          sh '''
+            buildah bud -t ${ECR_REPO}:${IMAGE_TAG} .
+            buildah push ${ECR_REPO}:${IMAGE_TAG}
+          '''
+        }
+      }
+    }
+
+    stage('Update k8s manifest') {
+      steps {
+        script {
+          sh '''
+            sed -i "s|image: ${ECR_REPO}:.*|image: ${ECR_REPO}:${IMAGE_TAG}|" k8s-files/frontend-deploy-service.yml
+          '''
+        }
+      }
+    }
+
+    stage('Commit updated manifest') {
+      steps {
+        script {
+          sh '''
+            git config --global user.name "${GIT_USER}"
+            git config --global user.email "${GIT_EMAIL}"
+            git add k8s-files/frontend-deploy-service.yml
+            git commit -m "CI: Update image to ${IMAGE_TAG}"
+            git push origin ${GIT_BRANCH}
+          '''
         }
       }
     }
