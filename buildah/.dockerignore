@@ -1,0 +1,50 @@
+# Ignore version control
+.git
+.gitignore
+
+# Ignore Docker artifacts
+Dockerfile
+.dockerignore
+
+# Ignore build output
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.swp
+*.tmp
+*.bak
+
+# Ignore node modules
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Ignore Python virtualenvs
+venv/
+.env/
+.envrc
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore test files and coverage
+coverage/
+*.cover
+*.lcov
+test-results/
+junit.xml
+*.egg-info/
+
+# Ignore IDE/editor config
+.vscode/
+.idea/
+*.sublime*
+
+# Ignore sensitive files
+*.pem
+*.key
+*.crt
+secrets.*
