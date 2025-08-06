@@ -12,23 +12,23 @@ metadata:
 spec:
   serviceAccountName: jenkins-sa
   containers:
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest
-      args:
-        - --dockerfile=Dockerfile
-        - --context=.
-        - --destination=100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend:v\$(BUILD_NUMBER)
-        - --verbosity=debug
-      volumeMounts:
-        - name: kaniko-secret
-          mountPath: /kaniko/.docker
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:latest
+    args:
+      - --dockerfile=Dockerfile
+      - --context=.
+      - --destination=100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend:v\$(BUILD_NUMBER)
+      - --verbosity=info
+    volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker
   restartPolicy: Never
   volumes:
-    - name: kaniko-secret
-      projected:
-        sources:
-        - serviceAccountToken:
-            path: token
+  - name: kaniko-secret
+    projected:
+      sources:
+      - serviceAccountToken:
+          path: token
 """
     }
   }
@@ -40,17 +40,17 @@ spec:
   }
 
   stages {
-    stage('Checkout Code') {
+    stage('Checkout') {
       steps {
         git url: 'https://github.com/MultiCloud-Devops/fullstack-authors-books-application.git', branch: 'main'
       }
     }
 
-    stage('Build and Push Image') {
+    stage('Build & Push') {
       steps {
         container('kaniko') {
-          echo "Kaniko container is building the image..."
-          // No need to run sh or anything — Kaniko will run directly from `args`
+          echo "Kaniko build running automatically from args in pod YAML."
+          // No shell step needed here — Kaniko runs from args
         }
       }
     }
