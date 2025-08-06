@@ -13,7 +13,7 @@ spec:
   serviceAccountName: jenkins-sa
   containers:
   - name: buildah
-    image: quay.io/buildah/stable
+    image: quay.io/jitesoft/buildah:latest
     command:
     - cat
     tty: true
@@ -64,25 +64,21 @@ spec:
 
     stage('Update k8s manifest') {
       steps {
-        script {
-          sh '''
-            sed -i "s|image: ${ECR_REPO}:.*|image: ${ECR_REPO}:${IMAGE_TAG}|" k8s-files/frontend-deploy-service.yml
-          '''
-        }
+        sh '''
+          sed -i "s|image: ${ECR_REPO}:.*|image: ${ECR_REPO}:${IMAGE_TAG}|" k8s-files/frontend-deploy-service.yml
+        '''
       }
     }
 
     stage('Commit updated manifest') {
       steps {
-        script {
-          sh '''
-            git config --global user.name "${GIT_USER}"
-            git config --global user.email "${GIT_EMAIL}"
-            git add k8s-files/frontend-deploy-service.yml
-            git commit -m "CI: Update image to ${IMAGE_TAG}"
-            git push origin ${GIT_BRANCH}
-          '''
-        }
+        sh '''
+          git config --global user.name "${GIT_USER}"
+          git config --global user.email "${GIT_EMAIL}"
+          git add k8s-files/frontend-deploy-service.yml
+          git commit -m "CI: Update image to ${IMAGE_TAG}"
+          git push origin ${GIT_BRANCH}
+        '''
       }
     }
   }
