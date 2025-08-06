@@ -10,10 +10,12 @@ metadata:
   labels:
     app: kaniko
 spec:
-  serviceAccountName: jenkins-sa  # Must be IRSA-enabled with ECR permissions
+  serviceAccountName: jenkins-sa
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:latest
+    command: ["/bin/sh", "-c"]
+    args: ["while true; do sleep 30; done"]
     tty: true
     volumeMounts:
       - name: kaniko-secret
@@ -50,40 +52,34 @@ spec:
     stage('Build & Push to ECR') {
       steps {
         container('kaniko') {
-          script {
-            sh '''
-              /kaniko/executor \
-                --dockerfile=Dockerfile \
-                --context=. \
-                --destination=${ECR_REPO}:${IMAGE_TAG} \
-                --verbosity=info
-            '''
-          }
+          sh '''
+            /kaniko/executor \
+              --dockerfile=Dockerfile \
+              --context=. \
+              --destination=${ECR_REPO}:${IMAGE_TAG} \
+              --verbosity=info
+          '''
         }
       }
     }
 
     stage('Update k8s manifest with new image') {
       steps {
-        script {
-          sh '''
-            sed -i "s|image: ${ECR_REPO}:.*|image: ${ECR_REPO}:${IMAGE_TAG}|" k8s-files/frontend-deploy-service.yml
-          '''
-        }
+        sh '''
+          sed -i "s|image: ${ECR_REPO}:.*|image: ${ECR_REPO}:${IMAGE_TAG}|" k8s-files/frontend-deploy-service.yml
+        '''
       }
     }
 
     stage('Git Commit Updated YAML') {
       steps {
-        script {
-          sh '''
-            git config --global user.name "${GIT_USER}"
-            git config --global user.email "${GIT_EMAIL}"
-            git add k8s-files/frontend-deploy-service.yml || true
-            git diff --cached --quiet || git commit -m "CI: Update image to ${IMAGE_TAG}" || echo "No changes to commit"
-            git push origin ${GIT_BRANCH}
-          '''
-        }
+        sh '''
+          git config --global user.name "${GIT_USER}"
+          git config --global user.email "${GIT_EMAIL}"
+          git add k8s-files/frontend-deploy-service.yml || true
+          git diff --cached --quiet || git commit -m "CI: Update image to ${IMAGE_TAG}" || echo "No changes to commit"
+          git push origin ${GIT_BRANCH}
+        '''
       }
     }
   }
