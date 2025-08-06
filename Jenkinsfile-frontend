@@ -1,4 +1,4 @@
-pipeline {
+pipeline { 
   agent {
     kubernetes {
       label 'jenkins-kaniko-agent'
@@ -10,16 +10,15 @@ metadata:
   labels:
     app: kaniko
 spec:
-  serviceAccountName: jenkins-sa  # Must be IRSA-enabled
+  serviceAccountName: jenkins-sa  # Must be IRSA-enabled with ECR permissions
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:latest
-    command:
-    - /busybox/cat
     tty: true
     volumeMounts:
       - name: kaniko-secret
         mountPath: /kaniko/.docker
+  restartPolicy: Never
   volumes:
     - name: kaniko-secret
       projected:
@@ -55,7 +54,7 @@ spec:
             sh '''
               /kaniko/executor \
                 --dockerfile=Dockerfile \
-                --context=.` \
+                --context=. \
                 --destination=${ECR_REPO}:${IMAGE_TAG} \
                 --verbosity=info
             '''
@@ -80,8 +79,8 @@ spec:
           sh '''
             git config --global user.name "${GIT_USER}"
             git config --global user.email "${GIT_EMAIL}"
-            git add k8s-files/frontend-deploy-service.yml
-            git commit -m "CI: Update image to ${IMAGE_TAG}"
+            git add k8s-files/frontend-deploy-service.yml || true
+            git diff --cached --quiet || git commit -m "CI: Update image to ${IMAGE_TAG}" || echo "No changes to commit"
             git push origin ${GIT_BRANCH}
           '''
         }
