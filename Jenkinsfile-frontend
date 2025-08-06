@@ -14,9 +14,11 @@ spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:latest
-    command: ["/bin/sh", "-c"]
-    args: ["while true; do sleep 30; done"]
-    tty: true
+    args:
+      - --dockerfile=Dockerfile
+      - --context=.
+      - --destination=100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend:v\$(BUILD_NUMBER)
+      - --verbosity=info
     volumeMounts:
       - name: kaniko-secret
         mountPath: /kaniko/.docker
@@ -46,20 +48,6 @@ spec:
     stage('Checkout Code') {
       steps {
         git url: "${env.GIT_REPO}", branch: "${env.GIT_BRANCH}"
-      }
-    }
-
-    stage('Build & Push to ECR') {
-      steps {
-        container('kaniko') {
-          sh '''
-            /kaniko/executor \
-              --dockerfile=Dockerfile \
-              --context=. \
-              --destination=${ECR_REPO}:${IMAGE_TAG} \
-              --verbosity=info
-          '''
-        }
       }
     }
 
