@@ -1,91 +1,98 @@
 pipeline {
-  agent {
-    kubernetes {
-      label 'buildah-agent'
-      defaultContainer 'buildah'
-      yaml """
+    agent {
+        kubernetes {
+            yaml """
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
     app: buildah
 spec:
-  serviceAccountName: jenkins-sa  # IRSA-enabled service account
+  serviceAccountName: jenkins-sa
   containers:
   - name: buildah
     image: 100587526360.dkr.ecr.us-east-1.amazonaws.com/buildah-awscli:latest
-    securityContext:
-      privileged: true
     command:
     - cat
     tty: true
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: workspace-volume
+      mountPath: /home/jenkins/agent
+  volumes:
+  - name: workspace-volume
+    emptyDir: {}
 """
-    }
-  }
-
-  environment {
-    AWS_REGION    = 'us-east-1'
-    ECR_REPO      = '100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend'
-    IMAGE_TAG     = "v${env.BUILD_NUMBER}"
-    GIT_REPO      = 'https://github.com/MultiCloud-Devops/fullstack-authors-books-application.git'
-    GIT_BRANCH    = 'main'
-    GIT_USER      = 'MultiCloud-Devops'
-    GIT_EMAIL     = 'krishnaurs2022@gmail.com'
-    DOCKERFILE    = 'frontend/Dockerfile'
-    CONTEXT_DIR   = 'frontend'
-    K8S_YAML      = 'k8s-files/frontend-deploy-service.yml'
-  }
-
-  stages {
-    stage('Checkout Code') {
-      steps {
-        checkout([$class: 'GitSCM',
-          branches: [[name: "*/${env.GIT_BRANCH}"]],
-          userRemoteConfigs: [[url: "${env.GIT_REPO}"]]
-        ])
-      }
-    }
-
-    stage('Login to ECR') {
-      steps {
-        container('buildah') {
-          sh '''
-            aws --region $AWS_REGION ecr get-login-password | \
-              buildah login --username AWS --password-stdin $ECR_REPO
-          '''
         }
-      }
     }
 
-    stage('Build and Push Image to ECR') {
-      steps {
-        container('buildah') {
-          sh '''
-            buildah bud -f $DOCKERFILE -t $ECR_REPO:$IMAGE_TAG $CONTEXT_DIR
-            buildah push $ECR_REPO:$IMAGE_TAG
-          '''
+    environment {
+        AWS_REGION = "us-east-1"
+        REPO_NAME = "frontend"
+        ECR_REGISTRY = "100587526360.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        IMAGE_TAG = "latest"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                container('buildah') {
+                    git branch: 'main',
+                        url: 'https://github.com/MultiCloud-Devops/fullstack-authors-books-application.git'
+                }
+            }
         }
-      }
-    }
 
-    stage('Update k8s manifest') {
-      steps {
-        sh '''
-          sed -i "s|image: $ECR_REPO:.*|image: $ECR_REPO:$IMAGE_TAG|" $K8S_YAML
-        '''
-      }
-    }
+        stage('Login to ECR') {
+            steps {
+                container('buildah') {
+                    sh '''
+                        echo "Logging in to Amazon ECR..."
+                        aws ecr get-login-password --region $AWS_REGION | buildah login --username AWS --password-stdin $ECR_REGISTRY
+                    '''
+                }
+            }
+        }
 
-    stage('Commit updated manifest') {
-      steps {
-        sh '''
-          git config --global user.name "$GIT_USER"
-          git config --global user.email "$GIT_EMAIL"
-          git add $K8S_YAML
-          git commit -m "CI: Update frontend image to $IMAGE_TAG"
-          git push origin $GIT_BRANCH
-        '''
-      }
+        stage('Build and Push Image to ECR') {
+            steps {
+                container('buildah') {
+                    sh '''
+                        echo "Building Docker image for frontend..."
+                        cd frontend
+                        buildah bud -t $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG .
+
+                        echo "Pushing image to ECR..."
+                        buildah push $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG
+                    '''
+                }
+            }
+        }
+
+        stage('Update Kubernetes Manifest') {
+            steps {
+                container('buildah') {
+                    sh '''
+                        echo "Updating image in k8s manifest..."
+                        sed -i "s|image:.*|image: $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG|" ../k8s-files/frontend-deployment.yaml
+                    '''
+                }
+            }
+        }
+
+        stage('Commit updated manifest') {
+            steps {
+                container('buildah') {
+                    sh '''
+                        git config user.email "jenkins@example.com"
+                        git config user.name "Jenkins CI"
+                        git add ../k8s-files/frontend-deployment.yaml
+                        git commit -m "Updated frontend image in k8s manifest to $IMAGE_TAG"
+                        git push origin main
+                    '''
+                }
+            }
+        }
     }
-  }
 }
