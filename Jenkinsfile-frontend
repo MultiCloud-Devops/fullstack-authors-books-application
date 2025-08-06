@@ -1,0 +1,91 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'jenkins-kaniko-agent'
+      defaultContainer 'kaniko'
+      yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: kaniko
+spec:
+  serviceAccountName: jenkins-sa  # Must be IRSA-enabled
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:latest
+    command:
+    - /busybox/cat
+    tty: true
+    volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker
+  volumes:
+    - name: kaniko-secret
+      projected:
+        sources:
+        - serviceAccountToken:
+            path: token
+"""
+    }
+  }
+
+  environment {
+    AWS_REGION     = 'us-east-1'
+    ECR_REPO       = '100587526360.dkr.ecr.us-east-1.amazonaws.com/frontend'
+    IMAGE_TAG      = "v${env.BUILD_NUMBER}"
+    GIT_REPO       = 'https://github.com/MultiCloud-Devops/fullstack-authors-books-application.git'
+    GIT_BRANCH     = 'main'
+    GIT_USER       = 'MultiCloud-Devops'
+    GIT_EMAIL      = 'krishnaurs2022@gmail.com'
+    DOCKER_CONFIG  = '/kaniko/.docker/'
+  }
+
+  stages {
+    stage('Checkout Code') {
+      steps {
+        git url: "${env.GIT_REPO}", branch: "${env.GIT_BRANCH}"
+      }
+    }
+
+    stage('Build & Push to ECR') {
+      steps {
+        container('kaniko') {
+          script {
+            sh '''
+              /kaniko/executor \
+                --dockerfile=Dockerfile \
+                --context=.` \
+                --destination=${ECR_REPO}:${IMAGE_TAG} \
+                --verbosity=info
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Update k8s manifest with new image') {
+      steps {
+        script {
+          sh '''
+            sed -i "s|image: ${ECR_REPO}:.*|image: ${ECR_REPO}:${IMAGE_TAG}|" k8s-files/frontend-deploy-service.yml
+          '''
+        }
+      }
+    }
+
+    stage('Git Commit Updated YAML') {
+      steps {
+        script {
+          sh '''
+            git config --global user.name "${GIT_USER}"
+            git config --global user.email "${GIT_EMAIL}"
+            git add k8s-files/frontend-deploy-service.yml
+            git commit -m "CI: Update image to ${IMAGE_TAG}"
+            git push origin ${GIT_BRANCH}
+          '''
+        }
+      }
+    }
+  }
+}
